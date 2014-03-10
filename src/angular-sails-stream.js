@@ -1,4 +1,4 @@
-angular.module('angularSails.stream')
+angular.module('angularSails.stream',[])
 
 .factory('$sailsStream',['$q','$rootScope',function eventsService($q, $rootScope) {
 
