@@ -1,12 +1,10 @@
-(function() {
-
-  var angularSailsIO = angular.module('angularSails.io', [])
+angular.module('angularSails.io', [])
 
 
   /**
    * sailsSocketFactory
    *
-   * Wraps socket.io to plug it into Angular's digest cycle
+   * sailsAngular wrapper around socket.io 
    *
    * Code from :
    *
@@ -18,7 +16,7 @@
    * sails.io.js by Balderdashy : https://github.com/balderdashy/sails
    */
 
-   angularSailsIO.provider('sailsSocketFactory', function() {
+.provider('sailsSocketFactory', function() {
     var defaultPrefix = 'sails:',
       ioSocket;
 
@@ -163,10 +161,10 @@
         };
       }
     ];
-  });
+})
 
   //decorate $q so we can use success/error
-  angularSailsIO.config(['$provide',
+.config(['$provide',
     function($provide) {
       $provide.decorator('$q', function($delegate) {
         var defer = $delegate.defer;
@@ -190,6 +188,3 @@
       })
     }
   ]);
-
-
-})();
