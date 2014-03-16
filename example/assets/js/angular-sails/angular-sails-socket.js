@@ -1,34 +1,22 @@
 'use strict'
 
 /**
- * @ngdoc module
- * @name sails.io
- * @file angularSails.io.js
+ * sails.io
  *
  * @description
  *
- * This file allows you to send and receive socket.io messages to & from Sails
- * by simulating a REST client interface on top of socket.io.
+ * Core module for Socket.io interactions with Sails. This module is required to use angularSails, but can also be used standalone.
  *
- * It models its API after the $http pattern from Angular and returns $q promises.
+ * This module *replaces* the sails.io.js file, as it provides the same functionality, customized for use with AngularJS.
  *
- * So if you're switching from using AJAX to sockets, instead of:
- *  `$http.post( url, [data]).then( successHandler, errorHandler )`
+ * @requires socket.io.js
  *
- * You would use:
- *    `socket.post( url, [data]).then( successHandler, errorHandler )`
+ * @version v0.0.0
+ * @link http://github.com/balderdashy/angularSails
  *
- * It also supports $http-style success / error callbacks:
- *  ` socket.get( url, [params] )
- *      .success(function(results){})
- *      .error(function(results){}) `
- *
- *
- * For more information, visit:
- * http://github.com/balderdashy/angularSails
+ * @license MIT License, http://www.opensource.org/licenses/MIT
  */
 angular.module('angularSails.io', [])
-
 
 
 /**
@@ -58,6 +46,21 @@ angular.module('angularSails.io', [])
         // expose to provider
         return {
             '$get' :  ['$q', '$rootScope', '$timeout', '$window', function($q, $rootScope, $timeout, $window) {
+
+
+                /**
+                 * TmpSocket
+                 *
+                 * A mock Socket used for binding events before the real thing
+                 * has been instantiated (since we need to use io.connect() to
+                 * instantiate the real thing, which would kick off the connection
+                 * process w/ the server, and we don't necessarily have the valid
+                 * configuration to know WHICH SERVER to talk to yet.)
+                 *
+                 * @api private
+                 * @constructor
+                 */
+
 
 
                 var asyncAngularify = function(socket, callback) {
@@ -150,102 +153,94 @@ angular.module('angularSails.io', [])
 
                         _socket.on('connect',function(){
 
+                            deferredSocket.resolve(sailsSocket);
 
                         })
                     }
 
                     //a wrapper around a socket.io connection, to work with the sails API
 
-                    var SailsSocket = function(io) {
+                    var sailsSocket = {
 
-                    }
+                        connect : connect,
+
+                        on: addListener,
+
+                        addListener: addListener,
+
+                        emit: function(eventName, data, callback) {
+
+                            return socket.emit(eventName, data, asyncAngularify(socket, callback));
+
+                        },
+
+                        removeListener: function() {
+
+                            return socket.removeListener.apply(socket, arguments);
+                        },
+
+                        forward: function(events, scope) {
+
+                            if (events instanceof Array === false) {
+
+                                events = [events]
+
+                            }
+
+                            if (!scope) {
+
+                                scope = defaultScope;
+
+                            }
+
+                            events.forEach(function(eventName) {
+
+                                var prefixedEvent = prefix + eventName;
+
+                                var forwardBroadcast = asyncAngularify(socket, function(data) {
+
+                                    scope.$broadcast(prefixedEvent, data)
+
+                                });
 
 
+                                scope.$on('$destroy', function() {
 
+                                    socket.removeListener(eventName, forwardBroadcast)
 
+                                });
 
+                                socket.on(eventName, forwardBroadcast);
+                            });
+                        },
 
+                        //sails REST API over socket.io with promises ftw
 
+                        get: function(path, query) {
 
-//                        connect : connect,
-//
-//                        on: addListener,
-//
-//                        addListener: addListener,
-//
-//                        emit: function(eventName, data, callback) {
-//
-//                            return socket.emit(eventName, data, asyncAngularify(socket, callback));
-//
-//                        },
-//
-//                        removeListener: function() {
-//
-//                            return socket.removeListener.apply(socket, arguments);
-//                        },
-//
-//                        forward: function(events, scope) {
-//
-//                            if (events instanceof Array === false) {
-//
-//                                events = [events]
-//
-//                            }
-//
-//                            if (!scope) {
-//
-//                                scope = defaultScope;
-//
-//                            }
-//
-//                            events.forEach(function(eventName) {
-//
-//                                var prefixedEvent = prefix + eventName;
-//
-//                                var forwardBroadcast = asyncAngularify(socket, function(data) {
-//
-//                                    scope.$broadcast(prefixedEvent, data)
-//
-//                                });
-//
-//
-//                                scope.$on('$destroy', function() {
-//
-//                                    socket.removeListener(eventName, forwardBroadcast)
-//
-//                                });
-//
-//                                socket.on(eventName, forwardBroadcast);
-//                            });
-//                        },
-//
-//                        //sails REST API over socket.io with promises ftw
-//
-//                        get: function(path, query) {
-//
-//                            return sailsRequest(socket, 'get', path, query)
-//
-//                        },
-//
-//                        post: function(path, data) {
-//
-//                            return sailsRequest(socket, 'post', path, data)
-//
-//                        },
-//
-//                        put: function(path, data) {
-//
-//                            return sailsRequest(socket, 'put', path, data)
-//
-//                        },
-//
-//                        delete: function(path, data) {
-//
-//                            return sailsRequest(socket, 'delete', path, data)
-//
-//                        }
-//
-//                    };
+                            return sailsRequest(socket, 'get', path, query)
+
+                        },
+
+                        post: function(path, data) {
+
+                            return sailsRequest(socket, 'post', path, data)
+
+                        },
+
+                        put: function(path, data) {
+
+                            return sailsRequest(socket, 'put', path, data)
+
+                        },
+
+                        delete: function(path, data) {
+
+                            return sailsRequest(socket, 'delete', path, data)
+
+                        }
+
+                    };
 
                     return sailsSocket
                 };
